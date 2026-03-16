@@ -1,13 +1,15 @@
 import logging
 import boto3
+import subprocess
+import json
+import os
 from typing import Dict, List, Any, Optional, Union
 from mcp.server import FastMCP
 import asyncio
 
 # 初始化 FastMCP 服务器
 mcp = FastMCP(
-    name='quicksight-lineage-mcp',
-    description='QuickSight 元数据血缘分析 MCP 服务器'
+    name='quicksight-lineage-mcp'
 )
 
 # 配置日志
@@ -35,9 +37,33 @@ class QuickSightLineage:
         
         
     def _get_quicksight_client(self):
-        """获取 QuickSight 客户端"""
+        """获取 QuickSight 客户端，通过 ada + role assumption"""
         logger.info(f"创建新的 QuickSight 客户端，区域: {self.region}")
-        return boto3.client('quicksight', region_name=self.region)
+        try:
+            profile = os.environ.get('AWS_PROFILE', 'ixtde-core-etl-alpha-datagrip-role')
+            role_arn = os.environ.get('QS_ROLE_ARN', 'arn:aws:iam::764946308314:role/P210516748-IXT-Discovery')
+            result = subprocess.run(
+                ['/Users/dubbat/.toolbox/bin/ada', 'credentials', 'print', f'--profile={profile}'],
+                capture_output=True, text=True, timeout=30
+            )
+            base_creds = json.loads(result.stdout)
+            sts = boto3.client(
+                'sts', region_name=self.region,
+                aws_access_key_id=base_creds['AccessKeyId'],
+                aws_secret_access_key=base_creds['SecretAccessKey'],
+                aws_session_token=base_creds['SessionToken'],
+            )
+            assumed = sts.assume_role(RoleArn=role_arn, RoleSessionName='quicksight-lineage-mcp')['Credentials']
+            session = boto3.Session(
+                aws_access_key_id=assumed['AccessKeyId'],
+                aws_secret_access_key=assumed['SecretAccessKey'],
+                aws_session_token=assumed['SessionToken'],
+                region_name=self.region,
+            )
+            return session.client('quicksight')
+        except Exception as e:
+            logger.warning(f"Role assumption failed, falling back to ambient creds: {e}")
+            return boto3.client('quicksight', region_name=self.region)
 
 
     def list_all_analyses(self) -> List[Dict[str, Any]]:
