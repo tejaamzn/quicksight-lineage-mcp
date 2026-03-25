@@ -19,6 +19,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+DEFAULT_ACCOUNT_ID = os.environ.get('AWS_ACCOUNT_ID', '764946308314')
+DEFAULT_REGION = os.environ.get('AWS_REGION', 'us-east-1')
+
 
 class QuickSightLineage:
     """QuickSight 元数据血缘分析工具"""
@@ -353,7 +356,7 @@ class QuickSightLineage:
     name="quicksight_overview",
     description="执行 QuickSight 资源统计"
 )
-async def quicksight_overview(account_id: str, region: str = "us-east-1") -> Dict[str, Any]:
+async def quicksight_overview(account_id: str = DEFAULT_ACCOUNT_ID, region: str = DEFAULT_REGION) -> Dict[str, Any]:
     """
     参数:
         account_id: AWS 账户 ID
@@ -397,7 +400,7 @@ async def quicksight_overview(account_id: str, region: str = "us-east-1") -> Dic
     name="list_datasets",
     description="所有数据集列表"
 )
-async def list_datasets(account_id: str, region: str = "us-east-1") -> Dict[str, Any]:
+async def list_datasets(account_id: str = DEFAULT_ACCOUNT_ID, region: str = DEFAULT_REGION) -> Dict[str, Any]:
     """
     参数:
         account_id: AWS 账户 ID
@@ -428,7 +431,7 @@ async def list_datasets(account_id: str, region: str = "us-east-1") -> Dict[str,
     name="list_datasources",
     description="所有数据源"
 )
-async def list_datasources(account_id: str, region: str = "us-east-1") -> Dict[str, Any]:
+async def list_datasources(account_id: str = DEFAULT_ACCOUNT_ID, region: str = DEFAULT_REGION) -> Dict[str, Any]:
     """
     参数:
         account_id: AWS 账户 ID
@@ -459,7 +462,7 @@ async def list_datasources(account_id: str, region: str = "us-east-1") -> Dict[s
     name="list_analyses",
     description="所有分析列表"
 )
-async def list_analyses(account_id: str, region: str = "us-east-1") -> Dict[str, Any]:
+async def list_analyses(account_id: str = DEFAULT_ACCOUNT_ID, region: str = DEFAULT_REGION) -> Dict[str, Any]:
     """
     参数:
         account_id: AWS 账户 ID
@@ -489,7 +492,7 @@ async def list_analyses(account_id: str, region: str = "us-east-1") -> Dict[str,
     name="list_dashboards",
     description="所有仪表板列表"
 )
-async def list_dashboards(account_id: str, region: str = "us-east-1") -> Dict[str, Any]:
+async def list_dashboards(account_id: str = DEFAULT_ACCOUNT_ID, region: str = DEFAULT_REGION) -> Dict[str, Any]:
     """
     参数:
         account_id: AWS 账户 ID
@@ -519,7 +522,7 @@ async def list_dashboards(account_id: str, region: str = "us-east-1") -> Dict[st
     name="analyze_dataset",
     description="分析指定数据集的血缘关系"
 )
-async def analyze_dataset_id(account_id: str, dataset_id: str, region: str = "us-east-1") -> Dict[str, Any]:
+async def analyze_dataset_id(dataset_id: str, account_id: str = DEFAULT_ACCOUNT_ID, region: str = DEFAULT_REGION) -> Dict[str, Any]:
     """
         参数:
             dataset_id (str): 数据集ID
@@ -543,7 +546,7 @@ async def analyze_dataset_id(account_id: str, dataset_id: str, region: str = "us
     name="analyze_datasource",
     description="分析指定数据源的血缘关系"
 )
-async def analyze_datasource_id(account_id: str, datasource_id: str, region: str = "us-east-1") -> Dict[str, Any]:
+async def analyze_datasource_id(datasource_id: str, account_id: str = DEFAULT_ACCOUNT_ID, region: str = DEFAULT_REGION) -> Dict[str, Any]:
     """
         参数:
             datasource_id (str): 数据源ID
@@ -566,7 +569,7 @@ async def analyze_datasource_id(account_id: str, datasource_id: str, region: str
     name="analyze_analysis",
     description="分析指定分析的血缘关系"
 )
-async def analyze_analysis_id(account_id: str, analysis_id: str, region: str = "us-east-1") -> Dict[str, Any]:
+async def analyze_analysis_id(analysis_id: str, account_id: str = DEFAULT_ACCOUNT_ID, region: str = DEFAULT_REGION) -> Dict[str, Any]:
     """ 
         参数:
             analysis_id (str): 分析ID
@@ -590,7 +593,7 @@ async def analyze_analysis_id(account_id: str, analysis_id: str, region: str = "
     name="analyze_dashboard",
     description="分析指定仪表板的血缘关系"
 )
-async def analyze_dashboard_id(account_id: str, dashboard_id: str, region: str = "us-east-1") -> Dict[str, Any]:
+async def analyze_dashboard_id(dashboard_id: str, account_id: str = DEFAULT_ACCOUNT_ID, region: str = DEFAULT_REGION) -> Dict[str, Any]:
     """
         参数:
             dashboard_id (str): 仪表板ID
