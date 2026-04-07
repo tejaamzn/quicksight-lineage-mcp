@@ -278,12 +278,16 @@ class QuickSightLineage:
         return result
     
 
-    def get_analysis_details(self, analysis_id: str) -> Dict[str, Any]:
+    def get_analysis_details(self, analysis_id: str, section: str = None) -> Dict[str, Any]:
         """
         获取分析的sheet和visual信息
         
         参数:
             analysis_id (str): 分析ID
+            section (str): Optional section filter. Valid values:
+                           CalculatedFields, Sheets, FilterGroups,
+                           ParameterDeclarations, DataSetIdentifier.
+                           If None, returns all sections.
             
         返回:
             Dict[str, Any]: 包含sheet和visual信息的字典，如果出错则返回空结构
@@ -296,15 +300,30 @@ class QuickSightLineage:
             )
             
             analysis_definition = analysis_details.get('Definition', {})
-            
-            result = {
-                'AnalysisId': analysis_id,
-                'DataSetIdentifier': analysis_definition.get('DataSetIdentifierDeclarations', []),
-                'Sheets': analysis_definition.get('Sheets', []),
-                'CalculatedFields': analysis_definition.get('CalculatedFields', []),
-                'ParameterDeclarations': analysis_definition.get('ParameterDeclarations', []),
-                'FilterGroups': analysis_definition.get('FilterGroups', [])
+
+            section_map = {
+                'DataSetIdentifier': 'DataSetIdentifierDeclarations',
+                'Sheets': 'Sheets',
+                'CalculatedFields': 'CalculatedFields',
+                'ParameterDeclarations': 'ParameterDeclarations',
+                'FilterGroups': 'FilterGroups',
             }
+
+            if section and section in section_map:
+                result = {
+                    'AnalysisId': analysis_id,
+                    'Section': section,
+                    section: analysis_definition.get(section_map[section], [])
+                }
+            else:
+                result = {
+                    'AnalysisId': analysis_id,
+                    'DataSetIdentifier': analysis_definition.get('DataSetIdentifierDeclarations', []),
+                    'Sheets': analysis_definition.get('Sheets', []),
+                    'CalculatedFields': analysis_definition.get('CalculatedFields', []),
+                    'ParameterDeclarations': analysis_definition.get('ParameterDeclarations', []),
+                    'FilterGroups': analysis_definition.get('FilterGroups', [])
+                }
             
         except Exception as e:
             logger.error(f"获取分析 {analysis_id} 详细信息时出错: {str(e)}")
@@ -334,13 +353,28 @@ class QuickSightLineage:
             return {'DashboardId': dashboard_id, 'Error': str(e)}
         return result
 
-    def get_dashboard_definition(self, dashboard_id: str) -> Dict[str, Any]:
+    def get_dashboard_definition(self, dashboard_id: str, section: str = None) -> Dict[str, Any]:
         try:
             resp = self.quicksight.describe_dashboard_definition(
                 AwsAccountId=self.aws_account_id,
                 DashboardId=dashboard_id
             )
             defn = resp.get('Definition', {})
+
+            section_map = {
+                'DataSetIdentifier': 'DataSetIdentifierDeclarations',
+                'Sheets': 'Sheets',
+                'CalculatedFields': 'CalculatedFields',
+                'ParameterDeclarations': 'ParameterDeclarations',
+                'FilterGroups': 'FilterGroups',
+            }
+
+            if section and section in section_map:
+                return {
+                    'DashboardId': dashboard_id,
+                    'Section': section,
+                    section: defn.get(section_map[section], [])
+                }
             return {
                 'DashboardId': dashboard_id,
                 'DataSetIdentifier': defn.get('DataSetIdentifierDeclarations', []),
@@ -1159,12 +1193,13 @@ async def analyze_datasource_id(datasource_id: str, account_id: str = DEFAULT_AC
 
 @mcp.tool(
     name="analyze_analysis",
-    description="分析指定分析的血缘关系"
+    description="分析指定分析的血缘关系. Use optional 'section' parameter to return only one section and avoid output size limits. Valid sections: CalculatedFields, Sheets, FilterGroups, ParameterDeclarations, DataSetIdentifier. Omit section to get all (may exceed output limits for large analyses)."
 )
-async def analyze_analysis_id(analysis_id: str, account_id: str = DEFAULT_ACCOUNT_ID, region: str = DEFAULT_REGION) -> Dict[str, Any]:
+async def analyze_analysis_id(analysis_id: str, section: str = None, account_id: str = DEFAULT_ACCOUNT_ID, region: str = DEFAULT_REGION) -> Dict[str, Any]:
     """ 
         参数:
             analysis_id (str): 分析ID
+            section (str): Optional - return only this section (CalculatedFields, Sheets, FilterGroups, ParameterDeclarations, DataSetIdentifier)
             
         返回:
             Dict[str, Any]: 包含分析血缘关系的字典
@@ -1176,7 +1211,7 @@ async def analyze_analysis_id(analysis_id: str, account_id: str = DEFAULT_ACCOUN
         region=region
     )
     
-    analysis_details = lineage.get_analysis_details(analysis_id)
+    analysis_details = lineage.get_analysis_details(analysis_id, section=section)
 
     return analysis_details
 
@@ -1192,11 +1227,11 @@ async def analyze_dashboard_id(dashboard_id: str, account_id: str = DEFAULT_ACCO
 
 @mcp.tool(
     name="analyze_dashboard_definition",
-    description="Get full dashboard definition - visuals, calculated fields, filters, parameters"
+    description="Get full dashboard definition - visuals, calculated fields, filters, parameters. Use optional 'section' parameter to return only one section: CalculatedFields, Sheets, FilterGroups, ParameterDeclarations, DataSetIdentifier."
 )
-async def analyze_dashboard_definition(dashboard_id: str, account_id: str = DEFAULT_ACCOUNT_ID, region: str = DEFAULT_REGION) -> Dict[str, Any]:
+async def analyze_dashboard_definition(dashboard_id: str, section: str = None, account_id: str = DEFAULT_ACCOUNT_ID, region: str = DEFAULT_REGION) -> Dict[str, Any]:
     lineage = QuickSightLineage(aws_account_id=account_id, region=region)
-    return lineage.get_dashboard_definition(dashboard_id)
+    return lineage.get_dashboard_definition(dashboard_id, section=section)
 
 
 @mcp.tool(
